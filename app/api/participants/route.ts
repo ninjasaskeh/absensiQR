@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   try {
     const sessionCookie = getSessionCookie(req);
     if (!sessionCookie) {
-      return NextResponse.json({ error: "Tidak berwenang" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const rows = await db
       .select()
@@ -17,10 +17,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: rows });
   } catch (e) {
     console.error(e);
-    return NextResponse.json(
-      { error: "Gagal mengambil data peserta" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to get user!" }, { status: 500 });
   }
 }
 

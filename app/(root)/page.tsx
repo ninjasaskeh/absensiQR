@@ -19,7 +19,7 @@ import {
 } from "@tabler/icons-react";
 
 const Home = () => {
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session } = authClient.useSession();
   const isLoggedIn = !!session?.user;
 
   return (
@@ -92,7 +92,7 @@ const Home = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-sm text-muted-foreground">
-              Sekali pindai, status langsung menjadi "Hadir".
+              Sekali pindai, status langsung menjadi &quot;Hadir&quot;.
             </CardContent>
           </Card>
           <Card>

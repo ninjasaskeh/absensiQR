@@ -108,7 +108,7 @@ export function ParticipantsTable({ data }: { data: ParticipantRow[] }) {
               if (!res.ok) throw new Error("Gagal menandai hadir");
               toast.success("Berhasil menandai hadir");
               router.refresh();
-            } catch (e: any) {
+            } catch {
               toast.error("Gagal menandai hadir");
             }
           };

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Link from "next/link";
+import Image from "next/image";
 
 const schema = z.object({
   name: z.string().min(2, "Minimal 2 karakter"),
@@ -49,8 +50,10 @@ const AddParticipantPage = () => {
       setCreated(data.data);
       toast.success("Participant created");
       reset();
-    } catch (e: any) {
-      toast.error(e.message || "Gagal membuat participant");
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Gagal membuat participant";
+      toast.error(message);
     }
   };
 
@@ -127,7 +130,7 @@ const AddParticipantPage = () => {
                 </span>
               </div>
               <div className="rounded-md overflow-hidden border w-fit bg-white p-2">
-                <img
+                <Image
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(created.qrToken)}`}
                   alt="QR Code"
                   width={220}
@@ -139,14 +142,14 @@ const AddParticipantPage = () => {
                 <Button size="sm" onClick={copyToken}>
                   Copy Token
                 </Button>
-                <a
+                <Link
                   className="text-primary underline text-sm leading-8"
                   href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(created.qrToken)}`}
                   target="_blank"
                   rel="noreferrer"
                 >
                   Buka QR (cetak)
-                </a>
+                </Link>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,12 +16,43 @@ export default function ScanQRPage() {
   const [busy, setBusy] = useState(false);
   const router = useRouter();
 
+  // Minimal typings for BarcodeDetector to avoid any
+  type Barcode = { rawValue?: string; displayValue?: string };
+  type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => {
+    detect: (source: HTMLVideoElement) => Promise<Barcode[]>;
+  };
+
+  const handleToken = useCallback(
+    async (token: string) => {
+      setBusy(true);
+      try {
+        const res = await fetch("/api/participants/checkin", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed");
+        toast.success(`Check-in berhasil: ${data.data?.name ?? "Peserta"}`);
+        router.push("/dashboard/participants");
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Token tidak valid";
+        toast.error(message);
+        setBusy(false);
+        scanningRef.current = true;
+      }
+    },
+    [router],
+  );
+
   useEffect(() => {
     let canceled = false;
+    let videoEl: HTMLVideoElement | null = null;
     const start = async () => {
       try {
         const hasDetector =
-          typeof (window as any).BarcodeDetector !== "undefined";
+          typeof (globalThis as { BarcodeDetector?: unknown })
+            .BarcodeDetector !== "undefined";
         setSupported(hasDetector);
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
@@ -31,6 +62,7 @@ export default function ScanQRPage() {
         streamRef.current = stream;
         const video = videoRef.current;
         if (video) {
+          videoEl = video;
           // Ensure attributes set before attaching stream
           video.playsInline = true;
           video.muted = true;
@@ -52,30 +84,32 @@ export default function ScanQRPage() {
           }
         }
         if (hasDetector) {
-          const detector = new (window as any).BarcodeDetector({
-            formats: ["qr_code"],
-          });
-          scanningRef.current = true;
-          const tick = async () => {
-            if (!scanningRef.current || canceled) return;
-            try {
-              const video = videoRef.current;
-              if (video && !video.paused && video.readyState >= 2) {
-                const barcodes = await detector.detect(video);
-                if (barcodes && barcodes.length > 0) {
-                  const value =
-                    barcodes[0].rawValue || barcodes[0].displayValue;
-                  if (value) {
-                    scanningRef.current = false;
-                    await handleToken(value);
-                    return;
+          const BD = (globalThis as { BarcodeDetector?: BarcodeDetectorCtor })
+            .BarcodeDetector;
+          if (BD) {
+            const detector = new BD({ formats: ["qr_code"] });
+            scanningRef.current = true;
+            const tick = async () => {
+              if (!scanningRef.current || canceled) return;
+              try {
+                const video = videoRef.current;
+                if (video && !video.paused && video.readyState >= 2) {
+                  const barcodes = await detector.detect(video);
+                  if (barcodes && barcodes.length > 0) {
+                    const value =
+                      barcodes[0].rawValue || barcodes[0].displayValue;
+                    if (value) {
+                      scanningRef.current = false;
+                      await handleToken(value);
+                      return;
+                    }
                   }
                 }
-              }
-            } catch {}
+              } catch {}
+              requestAnimationFrame(tick);
+            };
             requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
+          }
         } else {
           toast.message(
             "BarcodeDetector tidak didukung, gunakan input manual.",
@@ -93,38 +127,20 @@ export default function ScanQRPage() {
     return () => {
       canceled = true;
       scanningRef.current = false;
-      const video = videoRef.current;
+      const video = videoEl;
       if (video) {
         try {
           video.pause();
         } catch {}
         video.srcObject = null;
       }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
+      const stream = streamRef.current;
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
       }
     };
-  }, []);
-
-  const handleToken = async (token: string) => {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/participants/checkin", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed");
-      toast.success(`Check-in berhasil: ${data.data?.name ?? "Peserta"}`);
-      router.push("/dashboard/participants");
-    } catch (e: any) {
-      toast.error(e.message || "Token tidak valid");
-      setBusy(false);
-      scanningRef.current = true;
-    }
-  };
+  }, [handleToken]);
 
   const onManualSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

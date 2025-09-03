@@ -16,10 +16,8 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { arrayMove, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  IconCircleCheckFilled,
   IconDotsVertical,
   IconGripVertical,
-  IconLoader,
   IconTrendingUp,
 } from "@tabler/icons-react";
 import {
