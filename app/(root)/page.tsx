@@ -1,7 +1,5 @@
-"use client";
-
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -10,7 +8,8 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { authClient } from "@/lib/auth-client";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import {
   IconCamera,
   IconQrcode,
@@ -18,8 +17,8 @@ import {
   IconChevronRight,
 } from "@tabler/icons-react";
 
-const Home = () => {
-  const { data: session } = authClient.useSession();
+const Home = async () => {
+  const session = await auth.api.getSession({ headers: await headers() });
   const isLoggedIn = !!session?.user;
 
   return (
@@ -39,24 +38,27 @@ const Home = () => {
         <div className="flex flex-col items-center gap-3 sm:flex-row">
           {isLoggedIn ? (
             <>
-              <Link href="/dashboard">
-                <Button size="lg" className="gap-2">
-                  Buka Dashboard
-                  <IconChevronRight className="size-4" />
-                </Button>
+              <Link
+                href="/dashboard"
+                className={buttonVariants({ size: "lg", className: "gap-2" })}
+              >
+                Buka Dashboard
+                <IconChevronRight className="size-4" />
               </Link>
-              <Link href="/dashboard/participants/add">
-                <Button variant="outline" size="lg">
-                  Tambah Peserta
-                </Button>
+              <Link
+                href="/dashboard/participants/add"
+                className={buttonVariants({ variant: "outline", size: "lg" })}
+              >
+                Tambah Peserta
               </Link>
             </>
           ) : (
             <>
-              <Link href="/login">
-                <Button size="lg" className="gap-2">
-                  Masuk <IconChevronRight className="size-4" />
-                </Button>
+              <Link
+                href="/login"
+                className={buttonVariants({ size: "lg", className: "gap-2" })}
+              >
+                Masuk <IconChevronRight className="size-4" />
               </Link>
             </>
           )}

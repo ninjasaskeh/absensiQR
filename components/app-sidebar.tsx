@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   IconCamera,
   IconDashboard,
-  IconInnerShadowTop,
   IconUsers,
   IconUserPlus,
 } from "@tabler/icons-react";
@@ -20,6 +19,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
+import { QrCode } from "lucide-react";
 
 const data = {
   user: {
@@ -61,12 +62,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="/dashboard">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">
-                  Aplikasi Absensi
-                </span>
-              </a>
+              <Link href="/dashboard">
+                <div className="flex size-7 items-center justify-center rounded-sm border border-secondary-foreground/30">
+                  <QrCode className="!size-5" />
+                </div>
+                <span className="text-base font-semibold">QR Attandance</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -1,26 +1,31 @@
 import { db } from "@/db/drizzle";
 import { participant } from "@/db/schema";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
-import {
-  ParticipantsTable,
-  type ParticipantRow,
-} from "@/components/participants-table";
+import { ParticipantsTable } from "@/components/participants-table";
 import { Badge } from "@/components/ui/badge";
+import { count, eq } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
+const getCounts = unstable_cache(
+  async () => {
+    const [{ value: total }] = await db
+      .select({ value: count() })
+      .from(participant);
+    const [{ value: hadirCount }] = await db
+      .select({ value: count() })
+      .from(participant)
+      .where(eq(participant.hadir, true));
+    return { total, hadirCount } as const;
+  },
+  ["participants-counts"],
+  { revalidate: 10, tags: ["participants"] },
+);
+
 const ParticipantsPage = async () => {
-  const rows = await db.select().from(participant);
-  const data: ParticipantRow[] = rows.map((p) => ({
-    id: p.id,
-    name: p.name,
-    nik: p.nik,
-    hadir: p.hadir,
-    qrToken: p.qrToken,
-  }));
-  const total = data.length;
-  const hadirCount = data.filter((d) => d.hadir).length;
+  const { total, hadirCount } = await getCounts();
 
   return (
     <div className="space-y-5">
@@ -36,18 +41,22 @@ const ParticipantsPage = async () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/participants/add">
-            <Button size="sm">Tambah Peserta</Button>
+          <Link
+            href="/dashboard/participants/add"
+            className={buttonVariants({ size: "sm" })}
+          >
+            Tambah Peserta
           </Link>
-          <Link href="/dashboard/participants/scan">
-            <Button variant="outline" size="sm">
-              Pindai QR
-            </Button>
+          <Link
+            href="/dashboard/participants/scan"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Pindai QR
           </Link>
         </div>
       </div>
 
-      {data.length === 0 ? (
+      {total === 0 ? (
         <div className="grid place-items-center rounded-lg border border-dashed p-12 text-center">
           <div className="space-y-2">
             <p className="text-base font-medium">Belum ada peserta</p>
@@ -55,8 +64,11 @@ const ParticipantsPage = async () => {
               Tambahkan peserta untuk menghasilkan QR dan mulai pemindaian.
             </p>
             <div className="pt-2">
-              <Link href="/dashboard/participants/add">
-                <Button>Tambah Peserta</Button>
+              <Link
+                href="/dashboard/participants/add"
+                className={buttonVariants()}
+              >
+                Tambah Peserta
               </Link>
             </div>
           </div>
@@ -64,7 +76,8 @@ const ParticipantsPage = async () => {
       ) : (
         <div className="rounded-lg border bg-card">
           <div className="p-3 sm:p-4">
-            <ParticipantsTable data={data} />
+            {/* Provide empty initial data, client table will fetch */}
+            <ParticipantsTable data={[]} />
           </div>
         </div>
       )}

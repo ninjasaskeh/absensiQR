@@ -3,23 +3,59 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { SectionCards } from "@/components/section-cards";
 import { db } from "@/db/drizzle";
 import { participant } from "@/db/schema";
-import { desc } from "drizzle-orm";
+import { desc, eq, count } from "drizzle-orm";
 import {
   ParticipantsTable,
   type ParticipantRow,
 } from "@/components/participants-table";
+import { unstable_cache } from "next/cache";
+
+// Force dynamic rendering to prevent prerender errors
+export const dynamic = "force-dynamic";
+
+const getStats = unstable_cache(
+  async () => {
+    const [{ value: total }] = await db
+      .select({ value: count() })
+      .from(participant);
+    const [{ value: hadirCount }] = await db
+      .select({ value: count() })
+      .from(participant)
+      .where(eq(participant.hadir, true));
+    return { total, hadirCount } as const;
+  },
+  ["participants-stats"],
+  { revalidate: 10, tags: ["participants"] },
+);
+
+const getLatest = unstable_cache(
+  async () => {
+    const latestRows = await db
+      .select({
+        id: participant.id,
+        name: participant.name,
+        nik: participant.nik,
+        hadir: participant.hadir,
+        qrToken: participant.qrToken,
+        createdAt: participant.createdAt,
+      })
+      .from(participant)
+      .orderBy(desc(participant.createdAt))
+      .limit(10);
+    return latestRows as typeof latestRows;
+  },
+  ["participants-latest"],
+  { revalidate: 10, tags: ["participants"] },
+);
 
 const DashboardIndexPage = async () => {
-  const rows = await db
-    .select()
-    .from(participant)
-    .orderBy(desc(participant.createdAt));
-  const total = rows.length;
-  const hadir = rows.filter((r) => r.hadir).length;
-  const belum = total - hadir;
-  const rate = total > 0 ? (hadir / total) * 100 : 0;
+  const { total, hadirCount } = await getStats();
+  const belum = total - hadirCount;
+  const rate = total > 0 ? (hadirCount / total) * 100 : 0;
 
-  const latest: ParticipantRow[] = rows.slice(0, 10).map((p) => ({
+  const latestRows = await getLatest();
+
+  const latest: ParticipantRow[] = latestRows.map((p) => ({
     id: p.id,
     name: p.name,
     nik: p.nik,
@@ -29,7 +65,12 @@ const DashboardIndexPage = async () => {
 
   return (
     <>
-      <SectionCards total={total} hadir={hadir} belum={belum} rate={rate} />
+      <SectionCards
+        total={total}
+        hadir={hadirCount}
+        belum={belum}
+        rate={rate}
+      />
       <div className="px-4 lg:px-6">
         <ChartAreaInteractive />
       </div>

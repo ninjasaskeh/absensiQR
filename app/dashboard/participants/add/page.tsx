@@ -4,16 +4,23 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
+import { Copy } from "lucide-react";
 
 const schema = z.object({
-  name: z.string().min(2, "Minimal 2 karakter"),
-  nik: z.string().min(4, "Minimal 4 karakter"),
+  name: z
+    .string()
+    .min(2, "Nama terlalu pendek")
+    .max(100, "Nama terlalu panjang"),
+  nik: z
+    .string()
+    .min(4, "NIK yang anda masukkan tidak valid")
+    .max(16, "NIK yang anda masukkan tidak valid"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -21,7 +28,7 @@ type FormValues = z.infer<typeof schema>;
 type Created = {
   id: string;
   name: string;
-  nik: string;
+  nik: number;
   qrToken: string;
   hadir: boolean;
 };
@@ -78,17 +85,18 @@ const AddParticipantPage = () => {
             Masukkan nama dan NIK untuk menghasilkan QR.
           </p>
         </div>
-        <Link href="/dashboard/participants">
-          <Button variant="outline" size="sm">
-            Back to list
-          </Button>
+        <Link
+          href="/dashboard/participants"
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          Back to list
         </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="rounded-lg border bg-card p-3 sm:p-4 grid gap-4 content-start"
+          className="rounded-lg border bg-card p-3 sm:p-4 grid gap-4 content-start self-start"
         >
           <div className="grid gap-2">
             <Label htmlFor="name">Name</Label>
@@ -140,6 +148,7 @@ const AddParticipantPage = () => {
               <div className="text-xs break-all">Token: {created.qrToken}</div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={copyToken}>
+                  <Copy className="size-6" />
                   Copy Token
                 </Button>
                 <Link
@@ -149,6 +158,14 @@ const AddParticipantPage = () => {
                   rel="noreferrer"
                 >
                   Buka QR (cetak)
+                </Link>
+                <Link
+                  className="text-primary underline text-sm leading-8"
+                  href={`/dashboard/participants/template?token=${encodeURIComponent(
+                    created.qrToken,
+                  )}`}
+                >
+                  Buka Template Poster
                 </Link>
               </div>
             </div>
