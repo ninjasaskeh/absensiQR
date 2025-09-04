@@ -2,6 +2,15 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import React from "react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: {
+    default: "Dashboard | Absensi QR Code",
+    template: "%s | Dashboard | Absensi QR Code",
+  },
+  robots: { index: false, follow: false },
+};
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
